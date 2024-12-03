@@ -20,11 +20,14 @@
                 "collectNamespaceLabels": {
                     "type": "string"
                 },
+                "collectPVCLabels": {
+                    "type": "string"
+                },
                 "debug": {
                     "type": "boolean"
                 },
                 "disableKubeTLSverify": {
-                    "type": "string"
+                    "type": "boolean"
                 },
                 "gpu": {
                     "type": "object",
@@ -71,6 +74,18 @@
                 },
                 "useDeployment": {
                     "type": "boolean"
+                },
+                "volumes": {
+                    "type": "array"
+                },
+                "volumesMounts": {
+                    "type": "array"
+                },
+                "pollingInterval": {
+                    "type": "integer"
+                },
+                "listLimit": {
+                    "type": "integer"
                 }
             }
         },
@@ -82,6 +97,9 @@
             "properties": {
                 "annotations": {
                     "type": "object"
+                },
+                "create": {
+                  "type": "boolean"
                 }
             }
         },
@@ -90,6 +108,9 @@
             "properties": {
                 "annotations": {
                     "type": "object"
+                },
+                "create": {
+                  "type": "boolean"
                 }
             }
         },
@@ -213,6 +234,18 @@
         },
         "tolerations": {
             "type": "array"
+        },
+        "podDisruptionBudget": {
+            "type": "object",
+            "properties": {
+                "maxUnavailable": {
+                    "type": ["integer", "string"]
+                },
+                "minAvailable": {
+                    "type": ["integer", "string"]
+                }
+            }
         }
+
     }
 }

@@ -56,6 +56,10 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8}}
       {{- end}}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -85,6 +89,10 @@ spec:
             - name: VANTAGE_COLLECT_NAMESPACE_LABELS
               value: "{{ .Values.agent.collectNamespaceLabels }}"
             {{- end}}
+            {{- if .Values.agent.collectPVCLabels}}
+            - name: VANTAGE_COLLECT_PVC_LABELS
+              value: "{{ .Values.agent.collectPVCLabels }}"
+            {{- end}}
             {{- if .Values.agent.argocdRollouts}}
             - name: VANTAGE_ARGO_ROLLOUTS
               value: "{{ .Values.agent.argocdRollouts }}"
@@ -113,6 +121,10 @@ spec:
             - name: VANTAGE_GPU_EXPORTER_PATH
               value: "{{ .Values.agent.gpu.exporterPath }}"
             {{- end}}
+            {{- if .Values.agent.listLimit}}
+            - name: VANTAGE_LIST_LIMIT
+              value: "{{ .Values.agent.listLimit }}"
+            {{- end}}
             - name: VANTAGE_API_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -138,7 +150,11 @@ spec:
             {{- with .Values.persist }}
             - name: VANTAGE_PERSIST_DIR
               value: "{{ .mountPath }}"
-            {{ end }}
+            {{- end }}
+            {{- with .Values.agent.pollingInterval }}
+            - name: VANTAGE_POLLING_INTERVAL
+              value: "{{ . }}"
+            {{- end }}
           ports:
             - name: {{ .Values.service.name }}
               containerPort: {{ .Values.service.port }}
@@ -149,14 +165,20 @@ spec:
               port: {{ .Values.service.name }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-
+          volumeMounts:
+          {{- if .Values.agent.volumeMounts }}
+          {{- toYaml .Values.agent.volumeMounts | nindent 10 }}
+          {{- end }}
           {{- if not .Values.agent.useDeployment }}
           {{- with .Values.persist }}
-          volumeMounts:
-            - name: {{ .name }}
-              mountPath: {{ .mountPath }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath }}
           {{- end }}
           {{- end }}
+      volumes:
+      {{- if .Values.agent.volumes }}
+      {{- toYaml .Values.agent.volumes | nindent 6 }}
+      {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
   {{- if not .Values.agent.useDeployment }}
