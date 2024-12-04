@@ -209,6 +209,9 @@
         "serviceAccount": {
             "type": "object",
             "properties": {
+                "create": {
+                    "type": "boolean"
+                },
                 "annotations": {
                     "type": "object"
                 },
