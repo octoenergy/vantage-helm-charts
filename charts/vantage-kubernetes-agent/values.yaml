@@ -33,16 +33,25 @@ agent:
   allowedAnnotations: ""
 
   # Optional. Some cluster providers have self signed certificates on the kubelet. If you are seeing TLS errors, you can disable TLS verification here.
-  disableKubeTLSverify: "false"
+  disableKubeTLSverify: false
 
   # Optional. When enabled, includes the labels of that pod's namespace in the pod metadata.
   collectNamespaceLabels: "false"
+
+  # Optional. When enabled, includes the labels of the volumes mounted to pods.
+  collectPVCLabels: "false"
 
   # Optional. When enabled, includes ArgoCD Rollouts within controller metadata similar to Deployments.
   argocdRollouts: false
 
   # Optional. URL of an HTTP proxy used for external communications during the periodic report. This includes HTTP requests to the Vantage API and AWS S3. ie. http://example.com:3001
   reportHTTPProxy: ""
+
+  # Optional. Number of seconds between scrapes of the kubelet metrics endpoint. Values are 60, 30, 15, 10, or 5
+  pollingInterval: 60
+
+  # Optional. Limit the number of resources returned in the initial lists used to populate informers. 0 can be used to return to the previous behavior of listing all resources.
+  listLimit: 5000
 
   gpu:
     # Optional. Whether the agent should scrape GPU metrics or not. Requires NVIDIA dcgm-exporter to be deployed and configured with DCGM_FI_DEV_FB_USED and DCGM_FI_DEV_FB_TOTAL
@@ -60,6 +69,21 @@ agent:
     # Uses agent default if not specified: "/metrics"
     exporterPath: ""
 
+  volumes: []
+  volumeMounts: []
+
+# Specifies the pod DNS configuration.
+dnsConfig: {}
+#  nameservers:
+#    - 1.2.3.4
+#  searches:
+#    - ns1.svc.cluster-domain.example
+#    - my.dns.search.suffix
+#  options:
+#    - name: ndots
+#      value: "1"
+#    - name: attempts
+#      value: "3"
 
 persist:
   mountPath: "/var/lib/vantage-agent"

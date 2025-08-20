@@ -20,11 +20,14 @@
                 "collectNamespaceLabels": {
                     "type": "string"
                 },
+                "collectPVCLabels": {
+                    "type": "string"
+                },
                 "debug": {
                     "type": "boolean"
                 },
                 "disableKubeTLSverify": {
-                    "type": "string"
+                    "type": "boolean"
                 },
                 "gpu": {
                     "type": "object",
@@ -71,6 +74,18 @@
                 },
                 "useDeployment": {
                     "type": "boolean"
+                },
+                "volumes": {
+                    "type": "array"
+                },
+                "volumesMounts": {
+                    "type": "array"
+                },
+                "pollingInterval": {
+                    "type": "integer"
+                },
+                "listLimit": {
+                    "type": "integer"
                 }
             }
         },
