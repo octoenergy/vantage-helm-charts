@@ -11,6 +11,9 @@
                 "allowedAnnotations": {
                     "type": "string"
                 },
+                "allowedLabels": {
+                    "type": "string"
+                },
                 "argocdRollouts": {
                     "type": "boolean"
                 },
@@ -81,11 +84,110 @@
                 "volumesMounts": {
                     "type": "array"
                 },
+                "extraEnv": {
+                    "type": "array"
+                },
                 "pollingInterval": {
                     "type": "integer"
                 },
                 "listLimit": {
                     "type": "integer"
+                },
+                "networkCost": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "port": {
+                            "type": "integer"
+                        },
+                        "image": {
+                            "type": "object",
+                            "properties": {
+                                "repository": {
+                                    "type": "string"
+                                },
+                                "tag": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "subnets": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "cidr": {
+                                        "type": "string"
+                                    },
+                                    "zone": {
+                                        "type": "string"
+                                    },
+                                    "region": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": ["cidr"]
+                            }
+                        },
+                        "overrides": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "cidr": {
+                                        "type": "string"
+                                    },
+                                    "bucket": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": ["cidr", "bucket"]
+                            }
+                        },
+                        "existingConfigMap": {
+                            "type": "string"
+                        },
+                        "resources": {
+                            "type": "object"
+                        },
+                        "podAnnotations": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "discovery": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "region": {
+                                    "type": "string"
+                                },
+                                "tagKey": {
+                                    "type": "string"
+                                },
+                                "tagValue": {
+                                    "type": "string"
+                                },
+                                "interval": {
+                                    "type": "string"
+                                },
+                                "configMapName": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -99,7 +201,7 @@
                     "type": "object"
                 },
                 "create": {
-                  "type": "boolean"
+                    "type": "boolean"
                 }
             }
         },
@@ -110,7 +212,7 @@
                     "type": "object"
                 },
                 "create": {
-                  "type": "boolean"
+                    "type": "boolean"
                 }
             }
         },

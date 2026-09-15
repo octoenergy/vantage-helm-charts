@@ -1,4 +1,4 @@
-{{- if .Values.clusterRole.create  }}
+{{- if .Values.clusterRole.create }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -34,7 +34,7 @@ rules:
   - "jobs"
   - "cronjobs"
   verbs: ["get", "watch", "list"]
-{{- if .Values.agent.gpu.usageMetrics}}
+{{- if or .Values.agent.gpu.usageMetrics .Values.agent.networkCost.enabled}}
 - apiGroups: ["discovery.k8s.io"]
   resources:
   - "endpointslices"

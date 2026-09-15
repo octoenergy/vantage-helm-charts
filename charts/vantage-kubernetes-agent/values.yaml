@@ -32,6 +32,9 @@ agent:
   # Optional. Comma separated list of allowed annotations to be sent to Vantage. Max 10 annotations. Note that values are truncated after 100 chars.
   allowedAnnotations: ""
 
+  # Optional. Comma separated list of allowed labels to be sent to Vantage. Max 10 labels.
+  allowedLabels: ""
+
   # Optional. Some cluster providers have self signed certificates on the kubelet. If you are seeing TLS errors, you can disable TLS verification here.
   disableKubeTLSverify: false
 
@@ -69,8 +72,125 @@ agent:
     # Uses agent default if not specified: "/metrics"
     exporterPath: ""
 
+  # Optional. Per-node network cost collection. When enabled, the chart deploys
+  # the vantage-network-collector DaemonSet (reads conntrack to attribute pod
+  # network traffic to billing buckets) and tells the agent to pull per-pod
+  # byte summaries from it each report cycle.
+  #
+  # Requires an agent/collector image that includes the network collector
+  # (override image.tag if the chart appVersion predates it).
+  #
+  # Node prerequisite: net.netfilter.nf_conntrack_acct=1 on every node. The
+  # kernel leaves conntrack byte counters at zero when this is off (the default
+  # on many images), so the collector cannot attribute traffic. Enable it
+  # cluster-wide before generating traffic; only new connections get counters.
+  # See the repo README "Conntrack byte accounting" section for details.
+  networkCost:
+    # When false (default) no DaemonSet, ConfigMap, collector RBAC, or agent
+    # network env vars are rendered.
+    enabled: false
+    # gRPC port the collector listens on. The headless Service exposes this as
+    # port name "grpc"; the agent dials collectors via EndpointSlices for that
+    # port name.
+    port: 9012
+    # Optional. Override the collector image. Defaults to the top-level image.*
+    # values when left empty.
+    image:
+      repository: ""
+      tag: ""
+    # Required (unless existingConfigMap is set). List of VPC/VNet subnet CIDRs
+    # with zone/region info, rendered into the vantage-network-subnets ConfigMap.
+    # Each entry: { cidr: "10.0.0.0/8", zone: "us-east-1a", region: "us-east-1" }.
+    # zone is optional; region is derived from zone when omitted. Include IPv6
+    # CIDRs on dual-stack / IPv6 clusters or that traffic falls through to the
+    # internet bucket.
+    subnets: []
+    # Optional. List of CIDR->bucket overrides that win over subnet matches.
+    # Each entry: { cidr: "203.0.113.0/24", bucket: "internet" }.
+    # bucket is one of: in_zone, in_region, cross_region, internet, unknown.
+    overrides: []
+    # Optional. Name of a pre-existing ConfigMap holding subnets.yaml. When set,
+    # the chart does not render its own ConfigMap and `subnets`/`overrides` are
+    # ignored.
+    existingConfigMap: ""
+    # Optional. Resource requests/limits for the collector container.
+    resources: {}
+    # Optional. Annotations applied only to network collector pods. Values here
+    # override duplicate keys from the chart-level podAnnotations map.
+    podAnnotations: {}
+    # Optional. Scheduling controls for the collector DaemonSet. The collector
+    # is a DaemonSet meant to run on every node, but Kubernetes will not place
+    # it on nodes carrying custom taints unless a matching toleration is set
+    # here. Add tolerations for any tainted nodes you want network costs from
+    # (or omit them to intentionally skip those nodes).
+    tolerations: []
+    nodeSelector: {}
+    # Optional. Pod affinity, anti-affinity, and node affinity rules for the
+    # collector DaemonSet. For example, use required node affinity to exclude
+    # Fargate or hybrid nodes where the collector cannot access conntrack.
+    affinity: {}
+    # Optional. Agent-side AWS network discovery. When enabled, the agent uses
+    # the EC2 API to discover VPC subnets, route tables, and S3 prefix lists and
+    # writes the result to an agent-owned "discovered" subnet ConfigMap that the
+    # collector hot-reloads. This supplements the manual `subnets` list above so
+    # per-subnet S3 egress paths (gateway-endpoint vs NAT/IGW) are classified
+    # from live AWS topology instead of only hand-authored CIDRs.
+    #
+    # Requires:
+    #   - networkCost.enabled = true (the collector consumes the discovered CM).
+    #   - An agent/collector image that includes AWS network discovery (override
+    #     image.tag if the chart appVersion predates it).
+    #   - EC2 read permissions on the agent ServiceAccount (IRSA / EKS Pod
+    #     Identity): ec2:DescribeSubnets, ec2:DescribeRouteTables,
+    #     ec2:DescribeManagedPrefixLists, ec2:GetManagedPrefixListEntries.
+    # The agent is fail-closed: without permissions it logs once and stays off,
+    # so enabling this on a cluster that lacks EC2 access is a no-op.
+    discovery:
+      # When true, renders the agent discovery env vars, the namespaced RBAC the
+      # agent needs to write the discovered ConfigMap, and mounts that ConfigMap
+      # into the collector.
+      enabled: false
+      # Optional. AWS region override. When empty the agent resolves the region
+      # from IMDS, then a node's topology.kubernetes.io/region label. Set this on
+      # clusters where IMDS is restricted.
+      region: ""
+      # Optional. Tag key used to seed subnet discovery (find the cluster's
+      # VPCs). Defaults in-agent to the Karpenter discovery tag
+      # (karpenter.sh/discovery) when left empty.
+      tagKey: ""
+      # Optional but recommended. Tag value paired with tagKey (e.g. the EKS
+      # cluster name) to scope discovery in shared VPCs. When empty, any subnet
+      # carrying tagKey matches (looser).
+      tagValue: ""
+      # Optional. Re-discovery interval as a Go duration (e.g. "10m"). Minimum
+      # 1m; the agent default is used when left empty.
+      interval: ""
+      # Name of the agent-owned ConfigMap the discovered topology is written to
+      # and the collector reads. Kept separate from the manual ConfigMap so a
+      # discovery refresh (or a `helm upgrade`) never clobbers manual entries.
+      configMapName: "vantage-network-subnets-discovered"
+
   volumes: []
   volumeMounts: []
+
+  # Optional. Additional environment variables to pass to the agent container.
+  # Entries are rendered verbatim and appended after the chart's built-in
+  # VANTAGE_* variables, so you can also use `valueFrom` (e.g. secretKeyRef).
+  #
+  # Useful for configuring AWS credentials on non-EKS clusters when using
+  # `persistS3.bucket` - for example, GKE clusters using AWS IAM OIDC
+  # federation via a projected ServiceAccount token mounted through
+  # `agent.volumes` / `agent.volumeMounts`.
+  #
+  # Do not redefine any VANTAGE_* variables the chart already renders; doing
+  # so will produce a duplicate env entry and fail pod admission.
+  extraEnv: []
+  #   - name: AWS_ROLE_ARN
+  #     value: arn:aws:iam::123456789012:role/vantage-agent-s3
+  #   - name: AWS_WEB_IDENTITY_TOKEN_FILE
+  #     value: /var/run/secrets/aws-iam/token
+  #   - name: AWS_REGION
+  #     value: us-east-1
 
 # Specifies the pod DNS configuration.
 dnsConfig: {}
@@ -117,11 +237,9 @@ resources:
     cpu: 100m
     memory: 100Mi
 
-
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
-
 
 serviceAccount:
   create: true
